@@ -32,7 +32,7 @@ int main(int argc, char * argv[])
     getcwd(cwd, 256);
     strcpy(process_name, basename(argv[0]));
 
-    logmsg(stdout, "Started, process name:%s, cwd:%s", process_name, cwd);
+    logmsg(stdout, "Started, process name[%s], cwd[%s]", process_name, cwd);
 
     const char compile_opts[] = "Compiled with:"
 
@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
     }
 
     snprintf(file_path, 256, "../../etc/c/%s_decode.conf", process_name);
-    logmsg(stdout, "Reading decode file %s", file_path);
+    logmsg(stdout, "Reading decode file[%s]", file_path);
     ret = read_decode_map(file_path);
     if (ret) {
         logmsg(stdout, "Reading decode file failed, exiting...");
@@ -64,7 +64,7 @@ int main(int argc, char * argv[])
 
     // exit file
     snprintf(g_exitflag_file, 256, "../../flag/%s.exitflag", process_name);
-    logmsg(stdout, "Exit flag file: %s", g_exitflag_file);
+    logmsg(stdout, "Exit flag file[%s]", g_exitflag_file);
 
     // init thread
     pthread_attr_init(&attr);

@@ -90,9 +90,9 @@ void * read_file_thread(void * data)
     while (1)
    	{
 		dp = opendir(CFG(read_dir));
-        if (!dp) {
-            logmsg(stderr, "Cannot open dir %s, please check. will retry in %d seconds",
-                    CFG(read_dir), CFG(sleep_interval));
+        if (!dp)
+	   	{
+            logmsg(stderr, "Cannot open dir %s, please check. will retry in %d seconds", CFG(read_dir), CFG(sleep_interval));
             goto retry;
         }
 
@@ -124,13 +124,15 @@ void * read_file_thread(void * data)
 
             // copy file info
             strcpy(file_list[num_of_file].filename, read_filename);
+			logmsg(stdout, "Readfile name[%s].", read_filename);
             num_of_file++;
         }
 
         // sort input file
         qsort(file_list, num_of_file, sizeof(file_info_t), file_list_comp);
 
-		if (num_of_file){
+		if (num_of_file)
+		{
 			logmsg(stdout, "%d file will be processed this time.", num_of_file);
 		}
 
@@ -145,7 +147,9 @@ void * read_file_thread(void * data)
             rfile = fopen(read_filename, "r");
             while (read_line(rfile, file_line, 1024) != NULL)
 		   	{
-				if (parse_line(file_line, &se)){
+				logmsg(stdout, "Pass line[%s]", file_line);
+				if (parse_line(file_line, &se))
+				{
 					continue;
 				}
                 push_to_sort_buf(&se);
@@ -156,7 +160,8 @@ void * read_file_thread(void * data)
             remove(read_filename);
 
             // check exit flag
-            if (check_exit_flag()) {
+            if (check_exit_flag())
+		   	{
                 exit_flag = 1;
                 break;
             }
@@ -201,7 +206,8 @@ static int push_to_sort_buf(signal_entry_t * se)
     int ret = 0;
 
     // discard timeout record
-    if (min <= signal_current - CFG(sort_min)) {
+    if (min <= signal_current - CFG(sort_min))
+   	{
         //logmsg(stderr, "Discard record due to latency, imsi: %s, time %d", se->imsi, se->timestamp);
         return 0;
     }
@@ -209,15 +215,17 @@ static int push_to_sort_buf(signal_entry_t * se)
     if (signal_sort_buf[slot].time < min)
    	{
         signal_current = min;
+
         // need push sort buffer to context thread
         for (i = 0; i < CFG(sort_min) ; i++)
 	   	{
             ps = (i + slot + 1) % CFG(sort_min);
             if (signal_sort_buf[ps].time > signal_sort_buf[slot].time) continue;
             if (signal_sort_buf[ps].time == -1) continue;
+
             // we need to push this sort buffer into context
-            logmsg(stdout, "Push to %d record to context, timestamp: %d",
-                   signal_sort_buf[ps].used, signal_sort_buf[ps].time);
+            logmsg(stdout, "Push to %d record to context, timestamp: %d", signal_sort_buf[ps].used, signal_sort_buf[ps].time);
+
             // check hourly update when needed
             check_hourly_update(signal_sort_buf[ps].time * 60);
             // daily cleanup?
@@ -232,10 +240,13 @@ static int push_to_sort_buf(signal_entry_t * se)
             } else {
                 need_daily_cleanup = 1;
             }
+
             // do the sort.
             qsort(signal_sort_buf[ps].buffer, signal_sort_buf[ps].used, sizeof(signal_entry_t), comp_signal_func);
+
             // push to context
             push_to_context(&signal_sort_buf[ps]);
+
             // reset sort buffer
             signal_sort_buf[ps].used = 0;
             signal_sort_buf[ps].time = -1;
@@ -253,8 +264,7 @@ static int push_to_sort_buf(signal_entry_t * se)
         return 0;
     }
 
-    memcpy(&signal_sort_buf[slot].buffer[signal_sort_buf[slot].used],
-            se, sizeof(signal_entry_t));
+    memcpy(&signal_sort_buf[slot].buffer[signal_sort_buf[slot].used], se, sizeof(signal_entry_t));
 
     signal_sort_buf[slot].used += 1;
 
@@ -263,15 +273,17 @@ static int push_to_sort_buf(signal_entry_t * se)
     return 0;
 }
 
-static int push_to_context(signal_sort_buffer_t * ssb) {
+static int push_to_context(signal_sort_buffer_t * ssb)
+{
     int cidx = 0, pushed  = 0, to_push = 0;
     int num = ssb->used;
     signal_entry_t * ses = ssb->buffer;
     context_thread_t * ct;
 
-    while (pushed < num) {
-        // get num of context to push
-        ct = &context_thread[cidx];
+    while (pushed < num)
+   	{
+		// get num of context to push
+		ct = &context_thread[cidx];
 #define _DO_PUSH(st, pnum) do { \
     to_push = MIN(num - pushed, pnum); \
     if (to_push == 0) break; \
@@ -280,14 +292,15 @@ static int push_to_context(signal_sort_buffer_t * ssb) {
     ct->used += to_push; \
 } while(0)
         pthread_mutex_lock(&ct->mutex);
-        if (ct->read + ct->used < CONTEXT_BUF_CACHED) {
-            //      |------****USED****------|
-            //       ^- 2. then here   ^- 1. start here
+        if (ct->read + ct->used < CONTEXT_BUF_CACHED)
+		{
+            //USED
+            //2. then here   1. start here
             _DO_PUSH(ct->read + ct->used, CONTEXT_BUF_CACHED - ct->read - ct->used);
             _DO_PUSH(0, ct->read);
         } else {
-            // |***USED***---------***USED***|
-            //            ^- start here
+            //USED
+            //start here
             _DO_PUSH(ct->read + ct->used - CONTEXT_BUF_CACHED, CONTEXT_BUF_CACHED - ct->used);
         }
 #undef _DO_PUSH
@@ -457,28 +470,23 @@ static int parse_line(const char * line, signal_entry_t * se)
     }
 
     // ckeck num of field
-    if (w_idx < num_of_field) {
-        logmsg(stderr, "Wrong num of field, need %d, got %d, line: %s",
-			   num_of_field, w_idx, line);
+    if (w_idx < num_of_field)
+   	{
+        logmsg(stderr, "Wrong num of field, need %d, got %d, line: %s", num_of_field, w_idx, line);
         return 1;
     }
 
     // update se
-    // imsi
-    strcpy(se->imsi, word[decode(imsi)]);
-    // lac_cell
-    sprintf(se->lac_cell, "%s-%s", word[decode(lac)], word[decode(cell)]);
-    // timestamp: char[] to time_t
-    strptime(word[decode(timestamp)], "%Y-%m-%d %H:%M:%S", &tmp_tm);
+    strcpy(se->imsi, word[DECODE(imsi)]);
+    sprintf(se->lac_cell, "%s-%s", word[DECODE(lac)], word[DECODE(cell)]);
+    strptime(word[DECODE(timestamp)], "%Y-%m-%d %H:%M:%S", &tmp_tm);
     se->timestamp = mktime(&tmp_tm);
-    // event, char[] => enum_event_type
-    se->event = atoi(word[decode(event_type)]);
-    // msisdn and imei
+    se->event = atoi(word[DECODE(event_type)]);
 #ifdef WITH_MSISDN
-    strcpy(se->msisdn, word[decode(msisdn)]);
+    strcpy(se->msisdn, word[DECODE(msisdn)]);
 #endif
 #ifdef WITH_IMEI
-    strcpy(se->imei, word[decode(imei)]);
+    strcpy(se->imei, word[DECODE(imei)]);
 #endif
     return 0;
 }

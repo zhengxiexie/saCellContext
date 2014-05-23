@@ -511,7 +511,7 @@ int init_context()
     context.part = CONTEXT_PART;
     size_per_part = context.size / context.part;
 
-    logmsg(stdout, "starting to allocated Context: %1.3fMB x %d",
+    logmsg(stdout, "starting to allocated Context[%1.3fMB x %d]",
            size_per_part * sizeof(context_content_t) / 1024.0 / 1024,
            context.part);
 

@@ -1,10 +1,15 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define def_decode(x) int field_##x = -1
-#define export_decode(x) extern int field_##x
-#define decode(x) field_##x
+#define DEF_DECODE(x) int field_##x = -1
+#define EXPORT_DECODE(x) extern int field_##x
+#define DECODE(x) field_##x
+#define CFG(x) (g_config._##x)
+#define SIZE_OF(x) (sizeof(x) / sizeof(x[0]))
 
+#define DECODE_LINE_LENGTH (256)
+#define CONFIG_KEY_VALUE_LENGTH (256)
+#define CONFIG_LENGTH (1024)
 #define LEN_LACCELL (12)
 #define LEN_LINE (1024)
 #define CONTEXT_BASESIZE      (1000000ul)
@@ -16,13 +21,41 @@
 #define MAX(a, b) ((a) > (b)? (a): (b))
 #define MIN(a, b) ((a) < (b)? (a): (b))
 
-export_decode(imsi);
-export_decode(timestamp);
-export_decode(event_type);
-export_decode(lac);
-export_decode(cell);
-export_decode(msisdn);
-export_decode(imei);
+#define GET_DECODE(x) if (0 == strcasecmp(line, #x)) { \
+	DECODE(x) = atoi(comma); \
+	logmsg(stdout, "field_%s[%d]", #x, DECODE(x)); \
+	num_of_field ++; \
+	continue; \
+}
+
+#define GET_STR_CFG(x) if (0 == strcasecmp(word[0], #x)) { \
+	strcpy(g_config._##x, word[1]); \
+	logmsg(stdout, "g_config._%s[%s]", #x, word[1]); \
+	continue; \
+}
+
+#define GET_INT_CFG(x) if (0 == strcasecmp(word[0], #x)) { \
+	g_config._##x = atoi(word[1]); \
+	logmsg(stdout, "g_config._%s[%d]", #x, g_config._##x); \
+	continue; \
+}
+
+#define GET_MAP_INT_CFG(x) if (0 == strcasecmp(word[0], #x)) { \
+	int __x = atoi(word[1]); \
+	__x = __x > SIZE_OF(cfgmap_##x)? SIZE_OF(cfgmap_##x): __x; \
+	__x = __x < 0? 0: __x; \
+	g_config._##x = cfgmap_##x[__x]; \
+	logmsg(stdout, "g_config._%s[%d]", #x, g_config._##x); \
+	continue; \
+}
+
+EXPORT_DECODE(imsi);
+EXPORT_DECODE(timestamp);
+EXPORT_DECODE(event_type);
+EXPORT_DECODE(lac);
+EXPORT_DECODE(cell);
+EXPORT_DECODE(msisdn);
+EXPORT_DECODE(imei);
 
 extern int num_of_field;
 
@@ -48,7 +81,6 @@ struct config_t {
 typedef struct config_t config_t;
 
 extern config_t g_config;
-#define CFG(x) (g_config._##x)
 
 enum enum_event_type {
     CALL_SEND = 101,
@@ -70,6 +102,7 @@ typedef enum enum_event_type enum_event_type;
 
 int read_config(const char * cfg_file);
 int read_decode_map(const char * file);
+char * get_line(FILE * f, char * line, int len);
 
 #endif /* __CONFIG_H__ */
 
