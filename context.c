@@ -65,7 +65,8 @@ uint64_t BKDRHash(const char * str) {
 
 // update context. invoke do_update when content is already in context
 // otherwise insert new content into context.
-int update_context(const signal_entry_t * se) {
+int update_context(const signal_entry_t * se)
+{
     uint64_t hash_in = BKDRHash(se->imsi) % context.size;
     uint64_t part    = hash_in % context.part;
     uint64_t offset  = hash_in / context.part;
@@ -82,7 +83,8 @@ int update_context(const signal_entry_t * se) {
     pthread_mutex_lock(&context_seg->mutex_lock);
     for (temp_content = &context_seg->content[offset];
          temp_content && temp_content->imsi[0];
-         temp_content = temp_content->next) {
+         temp_content = temp_content->next)
+   	{
         if (0 == strcmp(se->imsi, temp_content->imsi)) {
             flag_content_found = 1;
             break;
@@ -107,7 +109,8 @@ int update_context(const signal_entry_t * se) {
     return 0;
 }
 
-static int do_update_context(context_content_t * old, const signal_entry_t * new) {
+static int do_update_context(context_content_t * old, const signal_entry_t * new)
+{
     old->last_event_time = new->timestamp;
     old->last_event_type = new->event;
 #ifdef WITH_MSISDN
@@ -138,10 +141,11 @@ static int do_update_context(context_content_t * old, const signal_entry_t * new
     return 0;
 }
 
-static int do_new_context(context_content_t * cc, const signal_entry_t * se) {
+static int do_new_context(context_content_t * cc, const signal_entry_t * se)
+{
     context_content_t * tmp_cc = NULL;
     if (!cc->imsi[0]) {
-        // newcontext node in this hash slot
+        // new context node in this hash slot
         tmp_cc = cc;
         cc->next = NULL;
     } else {
@@ -171,12 +175,13 @@ static int do_new_context(context_content_t * cc, const signal_entry_t * se) {
     strcpy(tmp_cc->imei, se->imei);
 #endif
 
+	logmsg(stdout, "Insert a new context_content_t imsi[%s] lac_cell[%s] come_time[%d] last_event_time[%d] last_event_type[%d]", tmp_cc->imsi, tmp_cc->lac_cell, tmp_cc->come_time, tmp_cc->last_event_time, (int)tmp_cc->last_event_type );
     do_update_event_stat(cc, se);
     return 0;
 }
 
-static
-int do_update_event_stat(context_content_t * cc, const signal_entry_t * se) {
+static int do_update_event_stat(context_content_t * cc, const signal_entry_t * se)
+{
     switch (se->event) {
         case CALL_SEND:
             cc->calling_call_counts++;
@@ -203,7 +208,8 @@ int do_update_event_stat(context_content_t * cc, const signal_entry_t * se) {
     return 0;
 }
 
-static int do_write_file(const context_content_t * cc) {
+static int do_write_file(const context_content_t * cc)
+{
     char line[LEN_LINE];
     int  len = 0;
     memset(line, 0, LEN_LINE);
@@ -212,16 +218,18 @@ static int do_write_file(const context_content_t * cc) {
     len = format_context(cc, line);
     if (!output_info.output) output_info.output = fopen(CFG(tmp_filename), "a");
     // according to POSIX standard, fwrite is atomic, therefore no lock needed.
-    //printf("out line: %s", line);
+    logmsg(stdout, "write file[%s] line[%s] ", CFG(tmp_filename), line);
     fwrite(line, len, 1, output_info.output);
     return 0;
 }
 
-static int write_context(const context_content_t * content) {
+static int write_context(const context_content_t * content)
+{
     return do_write_file(content);
 }
 
-static int format_context(const context_content_t * c, char * line) {
+static int format_context(const context_content_t * c, char * line)
+{
     int ret = 0;
     char time_laop[27], time_lacl[27],
          time_come[37], time_leav[27],
@@ -234,19 +242,18 @@ static int format_context(const context_content_t * c, char * line) {
     time_format(c->last_event_time, time_levt);
 
     ret = sprintf(line,
-     /*  1  2  3  4  5  6  7  8  9   10 11 12 13 14 15 16 */
-        "%s,%s,%s,%s,%s,%s,%d,%s,%hu,%s,%d,%d,%d,%d,%d,%d"
+			"%s,%s,%s,%s,%s,%s,%d,%s,%hu,%s,%d,%d,%d,%d,%d,%d"
+
 #ifdef WITH_MSISDN
-        ",%s" /* 17 */
+        ",%s" /*17*/
 #endif
+
 #ifdef WITH_IMEI
-        ",%s" /* 18 */
+        ",%s" /*18*/
 #endif
         "\n",
-        c->imsi, c->lac_cell,
-        time_laop, time_lacl, time_come, time_leav,
-        c->resident_time,
-        c->last_lac_cell, c->last_event_type, time_levt,
+        c->imsi, c->lac_cell, time_laop, time_lacl, time_come, time_leav,
+        c->resident_time, c->last_lac_cell, c->last_event_type, time_levt,
         c->mobile_open_counts, c->mobile_close_counts,
         c->smo_sms_counts,     c->calling_call_counts,
         c->smt_sms_counts,     c->called_call_counts
@@ -261,7 +268,8 @@ static int format_context(const context_content_t * c, char * line) {
     return ret;
 }
 
-static int fmt_output_timestamp(const time_t t, char * line) {
+static int fmt_output_timestamp(const time_t t, char * line)
+{
     struct tm tp;
     if (t != 0) {
         localtime_r(&t, &tp);
@@ -270,7 +278,8 @@ static int fmt_output_timestamp(const time_t t, char * line) {
     return 0;
 }
 
-static int time_format(const time_t t, char * line) {
+static int time_format(const time_t t, char * line)
+{
     struct tm tp;
     if (t > 0) {
         localtime_r(&t, &tp);
@@ -281,7 +290,8 @@ static int time_format(const time_t t, char * line) {
     return 0;
 }
 
-int hourly_update_context(time_t time) {
+int hourly_update_context(time_t time)
+{
     int i = 0, j = 0;
     context_seg_t     * ch = NULL;
     context_content_t * cc = NULL;
@@ -350,7 +360,8 @@ int hourly_update_context(time_t time) {
     return 0;
 }
 
-int check_hourly_update(time_t t) {
+int check_hourly_update(time_t t)
+{
     time_t rd_t = (t + CFG(tz_offset)) / CFG(output_interval) * CFG(output_interval) - CFG(tz_offset);
 
     // time
@@ -367,7 +378,8 @@ int check_hourly_update(time_t t) {
     return 0;
 }
 
-int daily_cleanup(time_t t) {
+int daily_cleanup(time_t t)
+{
     static const int sec_in_day = 24 * 3600;
     int i = 0;
     int j = 0;

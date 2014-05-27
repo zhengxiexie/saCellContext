@@ -13,12 +13,18 @@ struct context_content_t
 {
     char			imsi[16];
     char			lac_cell[LEN_LACCELL];
-    uint8_t			mobile_open_counts;
-    uint8_t			mobile_close_counts;
-    uint8_t			smo_sms_counts;
-    uint8_t			smt_sms_counts;
-    uint8_t			calling_call_counts;
-    uint8_t			called_call_counts;
+    //uint8_t			mobile_open_counts;
+    //uint8_t			mobile_close_counts;
+    //uint8_t			smo_sms_counts;
+    //uint8_t			smt_sms_counts;
+    //uint8_t			calling_call_counts;
+    //uint8_t			called_call_counts;
+    int		mobile_open_counts;
+    int		mobile_close_counts;
+    int		smo_sms_counts;
+    int		smt_sms_counts;
+    int		calling_call_counts;
+    int		called_call_counts;
     enum_event_type last_event_type;
     char			last_lac_cell[LEN_LACCELL];
     uint16_t		resident_time;

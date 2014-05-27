@@ -147,7 +147,7 @@ void * read_file_thread(void * data)
             rfile = fopen(read_filename, "r");
             while (read_line(rfile, file_line, 1024) != NULL)
 		   	{
-				logmsg(stdout, "Pass line[%s]", file_line);
+				/*logmsg(stdout, "Pass line[%s]", file_line);*/
 				if (parse_line(file_line, &se))
 				{
 					continue;
@@ -177,10 +177,12 @@ void * read_file_thread(void * data)
             // exiting
             exit_flag = 1;
             // wake all consumer thread
-            for (i = 0; i < CFG(context_thread); i++) {
+            for (i = 0; i < CFG(context_thread); i++)
+		   	{
                 pthread_cond_signal(&context_thread[i].pushed);
             }
-            for (i = 0; i < CFG(context_thread); i++) {
+            for (i = 0; i < CFG(context_thread); i++)
+		   	{
                 pthread_join(cthread[i], NULL);
             }
             write_back_context();
@@ -192,6 +194,7 @@ void * read_file_thread(void * data)
         // free allocted resource
         free(file_list);
 retry:
+		logmsg(stdout, "Now sleep [%d] seconds", CFG(sleep_interval));
         sleep(CFG(sleep_interval));
     }
     return NULL;
@@ -208,7 +211,7 @@ static int push_to_sort_buf(signal_entry_t * se)
     // discard timeout record
     if (min <= signal_current - CFG(sort_min))
    	{
-        //logmsg(stderr, "Discard record due to latency, imsi: %s, time %d", se->imsi, se->timestamp);
+		logmsg(stderr, "Discard record due to latency, imsi: %s, time %d", se->imsi, se->timestamp);
         return 0;
     }
 
@@ -224,10 +227,11 @@ static int push_to_sort_buf(signal_entry_t * se)
             if (signal_sort_buf[ps].time == -1) continue;
 
             // we need to push this sort buffer into context
-            logmsg(stdout, "Push to %d record to context, timestamp: %d", signal_sort_buf[ps].used, signal_sort_buf[ps].time);
+            /*logmsg(stdout, "Push %d record to context, timestamp: %d", signal_sort_buf[ps].used, signal_sort_buf[ps].time);*/
 
             // check hourly update when needed
             check_hourly_update(signal_sort_buf[ps].time * 60);
+
             // daily cleanup?
             if (((signal_sort_buf[ps].time * 60 + CFG(tz_offset)) / 60 - CFG(cleanup_min)) / 60 % 24 == CFG(cleanup_hour))
 		   	{
@@ -253,13 +257,15 @@ static int push_to_sort_buf(signal_entry_t * se)
         }
     }
 
-    if (signal_sort_buf[slot].time == -1) {
+    if (signal_sort_buf[slot].time == -1)
+   	{
         // new minute
         signal_sort_buf[slot].time = min;
         signal_sort_buf[slot].used = 0;
     }
 
-    if (signal_sort_buf[slot].used == CFG(sort_buffer)) {
+    if (signal_sort_buf[slot].used == CFG(sort_buffer))
+   	{
         logmsg(stderr, "Sort Buffer Full, please check.");
         return 0;
     }
@@ -268,8 +274,7 @@ static int push_to_sort_buf(signal_entry_t * se)
 
     signal_sort_buf[slot].used += 1;
 
-    //printf("push %s to %d, used: %d/%d, addr: %Lu\n", se->imsi, slot, signal_sort_buf[slot].used, CFG(sort_buffer),
-    //        &signal_sort_buf[slot].buffer[signal_sort_buf[slot].used - 1]);
+	logmsg( stdout, "push[%s] to signal_sort_buf[%d], used[%d/%d]\n", se->imsi, slot, signal_sort_buf[slot].used, CFG(sort_buffer));
     return 0;
 }
 
@@ -288,19 +293,21 @@ static int push_to_context(signal_sort_buffer_t * ssb)
     to_push = MIN(num - pushed, pnum); \
     if (to_push == 0) break; \
     memcpy(&ct->buf[st], &ses[pushed], sizeof(signal_entry_t) * to_push); \
+	int i = 0;\
+	for(; i<to_push; i++ ) \
+	{\
+		logmsg( stdout, "push[%s] to context_thread[%d]'s buf[%d]\n", (ses+i)->imsi, cidx, st);\
+	}\
     pushed   += to_push; \
     ct->used += to_push; \
 } while(0)
         pthread_mutex_lock(&ct->mutex);
         if (ct->read + ct->used < CONTEXT_BUF_CACHED)
 		{
-            //USED
-            //2. then here   1. start here
             _DO_PUSH(ct->read + ct->used, CONTEXT_BUF_CACHED - ct->read - ct->used);
             _DO_PUSH(0, ct->read);
-        } else {
-            //USED
-            //start here
+        } else
+		{
             _DO_PUSH(ct->read + ct->used - CONTEXT_BUF_CACHED, CONTEXT_BUF_CACHED - ct->used);
         }
 #undef _DO_PUSH

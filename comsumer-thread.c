@@ -30,6 +30,7 @@ void * comsumer_thread(void * th_num)
 	   	{
             pthread_mutex_lock(&cthread->mutex);
             se = &cthread->buf[cthread->read];
+			logmsg(stdout, "update context_thread[%d]'s buf[%d] started", thread_num, cthread->read);
             update_context(se);
             cthread->read = (++cthread->read) % CONTEXT_BUF_CACHED;
             cthread->used--;
@@ -37,10 +38,12 @@ void * comsumer_thread(void * th_num)
         } else
 	   	{
             spin_count++;
-            if (spin_count > SPIN_COUNT_WAIT) {
+            if (spin_count > SPIN_COUNT_WAIT)
+		   	{
                 spin_count = 0;
                 pthread_mutex_lock(&cthread->mutex);
-                while (cthread->used == 0) {
+                while (cthread->used == 0)
+			   	{
                     pthread_cond_wait(&cthread->pushed, &cthread->mutex);
 				}
                 pthread_mutex_unlock(&cthread->mutex);
@@ -58,9 +61,11 @@ int wait_context_thread()
     int i = 0;
 
     logmsg(stdout, "Waiting all context thread");
-    while (notallempty) {
+    while (notallempty)
+   	{
         notallempty = 0;
-        for (i = 0; i < CFG(context_thread); i++) {
+        for (i = 0; i < CFG(context_thread); i++)
+	   	{
             if (context_thread[i].used != 0) notallempty = 1;
         }
     }
