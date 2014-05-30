@@ -59,7 +59,8 @@ EXPORT_DECODE(imei);
 
 extern int num_of_field;
 
-struct config_t {
+typedef struct config_t_tag
+{
     int  _sort_min;
     int  _sort_buffer;
     int  _output_interval;
@@ -77,12 +78,12 @@ struct config_t {
     char _read_dir[128];
     char _backup_dir[256];
     char _tmp_filename[256];
-};
-typedef struct config_t config_t;
+}config_t;
 
 extern config_t g_config;
 
-enum enum_event_type {
+typedef enum enum_event_type_tag
+{
     CALL_SEND = 101,
     CALL_RECV = 102,
     SMS_SEND  = 201,
@@ -97,12 +98,10 @@ enum enum_event_type {
     ROAM_OUT = 601,
     MMS_SEND = 901,
     MMS_RECV = 902,
-};
-typedef enum enum_event_type enum_event_type;
+}enum_event_type;
 
 int read_config(const char * cfg_file);
 int read_decode_map(const char * file);
 char * get_line(FILE * f, char * line, int len);
 
-#endif /* __CONFIG_H__ */
-
+#endif

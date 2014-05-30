@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
-
 #include <time.h>
 #include <pthread.h>
 
@@ -30,7 +29,7 @@
 #include "comsumer-thread.h"
 #include "log.h"
 
-typedef struct _output_file_t
+typedef struct output_file_t_tag
 {
     char   filename[256];
     time_t filename_ts;
@@ -55,11 +54,12 @@ static int write_context(const context_content_t * content);
 static int fmt_output_timestamp(const time_t t, char * line);
 static int time_format(const time_t t, char * line);
 
-static inline
-uint64_t BKDRHash(const char * str) {
+static inline uint64_t BKDRHash(const char * str)
+{
     static const unsigned int seed = 1313; // 31 131 1313 13131 131313 etc..
     uint64_t hash = 0;
-    while (*str) hash = hash * seed + (*str++);
+    while (*str)
+	   	hash = hash * seed + (*str++);
     return hash;
 }
 
@@ -79,8 +79,9 @@ int update_context(const signal_entry_t * se)
     // lookup content in content_seg
     flag_content_found = 0;
 
-    // lock {{
+    // lock
     pthread_mutex_lock(&context_seg->mutex_lock);
+
     for (temp_content = &context_seg->content[offset];
          temp_content && temp_content->imsi[0];
          temp_content = temp_content->next)
@@ -99,7 +100,7 @@ int update_context(const signal_entry_t * se)
     }
 
     pthread_mutex_unlock(&context_seg->mutex_lock);
-    // unlock }}
+    // unlock
 
     if (ret) {
         logmsg(stderr, "Update Context failed");
@@ -113,25 +114,30 @@ static int do_update_context(context_content_t * old, const signal_entry_t * new
 {
     old->last_event_time = new->timestamp;
     old->last_event_type = new->event;
+
 #ifdef WITH_MSISDN
     if (!old->msisdn[0] && new->msisdn[0]) strcpy(old->msisdn, new->msisdn);
 #endif
 #ifdef WITH_IMEI
     if (!old->imei[0] && new->imei[0]) strcpy(old->imei, new->imei);
 #endif
-    if (strcmp(new->lac_cell, old->lac_cell)) {
+
+    if (strcmp(new->lac_cell, old->lac_cell))
+   	{
         old->leave_time = new->timestamp;
         // calculate resident_time
         time_t period_start = ROUND(old->leave_time - 1, CFG(output_interval));
         old->resident_time = old->leave_time - MAX(old->come_time, period_start);
         // outout context
         write_context(old);
+
 #ifdef WITH_MSISDN
         if (new->msisdn[0]) strcpy(old->msisdn, new->msisdn);
 #endif
 #ifdef WITH_IMEI
         if (new->imei[0]) strcpy(old->imei, new->imei);
 #endif
+
         old->come_time = new->timestamp;
         strcpy(old->last_lac_cell, old->lac_cell);
         strcpy(old->lac_cell, new->lac_cell);
@@ -154,6 +160,7 @@ static int do_new_context(context_content_t * cc, const signal_entry_t * se)
         tmp_cc->next = cc->next;
         cc->next = tmp_cc;
     }
+
     strcpy(tmp_cc->imsi, se->imsi);
     strcpy(tmp_cc->lac_cell, se->lac_cell);
     tmp_cc->come_time           = se->timestamp;
@@ -168,6 +175,7 @@ static int do_new_context(context_content_t * cc, const signal_entry_t * se)
     tmp_cc->smt_sms_counts      = 0;
     tmp_cc->last_open_time      = 0;
     tmp_cc->last_close_time     = 0;
+
 #ifdef WITH_MSISDN
     strcpy(tmp_cc->msisdn, se->msisdn);
 #endif
@@ -182,7 +190,8 @@ static int do_new_context(context_content_t * cc, const signal_entry_t * se)
 
 static int do_update_event_stat(context_content_t * cc, const signal_entry_t * se)
 {
-    switch (se->event) {
+    switch (se->event)
+   	{
         case CALL_SEND:
             cc->calling_call_counts++;
             break;
@@ -216,7 +225,9 @@ static int do_write_file(const context_content_t * cc)
 
     // format Context to line
     len = format_context(cc, line);
-    if (!output_info.output) output_info.output = fopen(CFG(tmp_filename), "a");
+    if (!output_info.output)
+	   	output_info.output = fopen(CFG(tmp_filename), "a");
+
     // according to POSIX standard, fwrite is atomic, therefore no lock needed.
     logmsg(stdout, "write file[%s] line[%s] ", CFG(tmp_filename), line);
     fwrite(line, len, 1, output_info.output);
@@ -231,9 +242,7 @@ static int write_context(const context_content_t * content)
 static int format_context(const context_content_t * c, char * line)
 {
     int ret = 0;
-    char time_laop[27], time_lacl[27],
-         time_come[37], time_leav[27],
-         time_levt[27];
+    char time_laop[27], time_lacl[27], time_come[37], time_leav[27], time_levt[27];
 
     time_format(c->last_open_time,  time_laop);
     time_format(c->last_close_time, time_lacl);
@@ -252,17 +261,20 @@ static int format_context(const context_content_t * c, char * line)
         ",%s" /*18*/
 #endif
         "\n",
+
         c->imsi, c->lac_cell, time_laop, time_lacl, time_come, time_leav,
         c->resident_time, c->last_lac_cell, c->last_event_type, time_levt,
         c->mobile_open_counts, c->mobile_close_counts,
         c->smo_sms_counts,     c->calling_call_counts,
         c->smt_sms_counts,     c->called_call_counts
+
 #ifdef WITH_MSISDN
         , c->msisdn
 #endif
 #ifdef WITH_IMEI
         , c->imei
 #endif
+
     );
 
     return ret;
@@ -271,7 +283,8 @@ static int format_context(const context_content_t * c, char * line)
 static int fmt_output_timestamp(const time_t t, char * line)
 {
     struct tm tp;
-    if (t != 0) {
+    if (t != 0)
+   	{
         localtime_r(&t, &tp);
         strftime(line, 27, "%Y%m%d%H%M", &tp);
     }
@@ -281,7 +294,8 @@ static int fmt_output_timestamp(const time_t t, char * line)
 static int time_format(const time_t t, char * line)
 {
     struct tm tp;
-    if (t > 0) {
+    if (t > 0)
+   	{
         localtime_r(&t, &tp);
         strftime(line, 27, "%Y-%m-%d %H:%M:%S", &tp);
     } else {
@@ -306,13 +320,15 @@ int hourly_update_context(time_t time)
         pthread_mutex_lock(&context.contexts[i].mutex_lock);
     }
 
-    for (i = 0; i < context.part; i++) {
+    for (i = 0; i < context.part; i++)
+   	{
         ch = &context.contexts[i];
-        for (j = 0; j < ch->size; j++) {
-            for (cc = &ch->content[j]; cc && cc->imsi[0]; cc = cc -> next) {
+        for (j = 0; j < ch->size; j++)
+	   	{
+            for (cc = &ch->content[j]; cc && cc->imsi[0]; cc = cc -> next)
+		   	{
                 total_in_context++;
-                cc->resident_time = CFG(output_interval)
-                        - cc->come_time % CFG(output_interval);
+                cc->resident_time = CFG(output_interval) - cc->come_time % CFG(output_interval);
                 write_context(cc);
                 cc->mobile_open_counts  = 0;
                 cc->mobile_close_counts = 0;
@@ -329,17 +345,18 @@ int hourly_update_context(time_t time)
         fflush(output_info.output);
         fclose(output_info.output);
     }
+
     fmt_output_timestamp(output_info.filename_ts / CFG(output_interval) * CFG(output_interval), output_timestamp);
     // trim min if CFG(output_interval) is multiply of 3600
     if (CFG(output_interval) % 3600 == 0) output_timestamp[10] = '\0';
     // trim hour if daily output
     if (CFG(output_interval) % (24 * 3600) == 0) output_timestamp[8] = '\0';
-    sprintf(output_info.filename, "%s/%s%s%s",
-            CFG(output_dir), CFG(output_prefix), output_timestamp, CFG(output_suffix));
+    sprintf(output_info.filename, "%s/%s%s%s", CFG(output_dir), CFG(output_prefix), output_timestamp, CFG(output_suffix));
 
     logmsg(stdout, "Output File: %s, Context: %d", output_info.filename, total_in_context);
 
-    if (CFG(cross_mountpoint)) {
+    if (CFG(cross_mountpoint))
+   	{
         // using mv to move file, rename() cannot handle
         // moving a file cross mount points
         char cmd_buffer[1024];
@@ -353,7 +370,8 @@ int hourly_update_context(time_t time)
 
     output_info.output = fopen(CFG(tmp_filename), "a");
     // unlock all context
-    for (i = 0; i < context.part; i++) {
+    for (i = 0; i < context.part; i++)
+   	{
         pthread_mutex_unlock(&context.contexts[i].mutex_lock);
     }
     output_info.filename_ts = time;
@@ -393,18 +411,22 @@ int daily_cleanup(time_t t)
     // wait context thread
     wait_context_thread();
 
-    for (i = 0; i < context.part; i++) {
+    for (i = 0; i < context.part; i++)
+   	{
         ch = &context.contexts[i];
-        for (j = 0; j < ch->size; j++) {
+        for (j = 0; j < ch->size; j++)
+	   	{
             cc = &ch->content[j];
             c_prev = NULL;
-            while (cc && cc->imsi[0]) {
+            while (cc && cc->imsi[0])
+		   	{
                 // check ts_signal
                 if (t - cc->last_event_time < sec_in_day) {
                     c_prev = cc;
                     cc     = cc->next;
                     continue;
                 }
+
                 // update poweron_duration;
                 cc->resident_time = (1 - CFG(cleanup_mark)) *
                     (t - MAX(t - CFG(output_interval), cc->come_time));
@@ -414,7 +436,8 @@ int daily_cleanup(time_t t)
 
                 // remove from context
                 cleaned++;
-                if (c_prev == NULL) {
+                if (c_prev == NULL)
+			   	{
 
                     // remove first node
                     if (!c_next) {
@@ -437,7 +460,8 @@ int daily_cleanup(time_t t)
 }
 
 // dump all context to file
-int dump_context(const char * filename) {
+int dump_context(const char * filename)
+{
     FILE * dump_file = fopen(filename, "wb");
     int i = 0;
     int j = 0;
@@ -451,13 +475,17 @@ int dump_context(const char * filename) {
 
     logmsg(stdout, "Backing up context to %s", filename);
     // write all context
-    for (i = 0; i < CONTEXT_PART; i++) {
-        for (j = 0; j < context.contexts[i].size; j++) {
-            for (cc = &context.contexts[i].content[j]; cc && cc->imsi[0]; cc = cc->next) {
+    for (i = 0; i < CONTEXT_PART; i++)
+   	{
+        for (j = 0; j < context.contexts[i].size; j++)
+	   	{
+            for (cc = &context.contexts[i].content[j]; cc && cc->imsi[0]; cc = cc->next)
+		   	{
                 fwrite(cc, sizeof(context_content_t), 1, dump_file);
             }
         }
     }
+
     fflush(dump_file);
     fclose(dump_file);
     logmsg(stdout, "Backing up context done!", filename);
@@ -465,7 +493,8 @@ int dump_context(const char * filename) {
 }
 
 // restore context from backup file
-int restore_context(const char * filename) {
+int restore_context(const char * filename)
+{
     FILE * dump_file = fopen(filename, "rb");
     context_content_t * cc;
     int backuped = 0;
@@ -477,11 +506,13 @@ int restore_context(const char * filename) {
 
     logmsg(stdout, "Restoring context from %s", filename);
     cc = calloc(1, sizeof(context_content_t));
-    while (fread(cc, sizeof(context_content_t), 1, dump_file)) {
+    while (fread(cc, sizeof(context_content_t), 1, dump_file))
+   	{
         cc->next = NULL;
         restore_one_context(cc);
         backuped++;
     }
+
     fclose(dump_file);
     logmsg(stdout, "%d Context retored", backuped, filename);
     free(cc);
@@ -489,7 +520,8 @@ int restore_context(const char * filename) {
     return 0;
 }
 
-static int restore_one_context(context_content_t * c) {
+static int restore_one_context(context_content_t * c)
+{
     uint64_t hash_in = BKDRHash(c->imsi) % context.size;
     uint64_t part    = hash_in % context.part;
     uint64_t offset  = hash_in / context.part;
@@ -497,7 +529,8 @@ static int restore_one_context(context_content_t * c) {
     context_seg_t * context_seg = &context.contexts[part];
     context_content_t * curr = &context_seg->content[offset];
 
-    if (curr->imsi[0]) {
+    if (curr->imsi[0])
+   	{
         // new node
         context_content_t * new = (context_content_t*)
             calloc(1, sizeof(context_content_t));
@@ -523,9 +556,9 @@ int init_context()
     context.part = CONTEXT_PART;
     size_per_part = context.size / context.part;
 
-    logmsg(stdout, "starting to allocated Context[%1.3fMB x %d]",
-           size_per_part * sizeof(context_content_t) / 1024.0 / 1024,
-           context.part);
+    logmsg(stdout, "starting to allocated Context:    sizeof(context_content_t)[%d] x size_per_part[%d] x context.part[%d] bytes = [%1.10f]MB",
+					sizeof(context_content_t), size_per_part,
+					context.part, sizeof(context_content_t) * size_per_part * context.part /1024.0/1024.0);
 
     for (i = 0; i < context.part; i++)
    	{

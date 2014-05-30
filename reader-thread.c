@@ -289,6 +289,7 @@ static int push_to_context(signal_sort_buffer_t * ssb)
    	{
 		// get num of context to push
 		ct = &context_thread[cidx];
+
 #define _DO_PUSH(st, pnum) do { \
     to_push = MIN(num - pushed, pnum); \
     if (to_push == 0) break; \
@@ -301,7 +302,10 @@ static int push_to_context(signal_sort_buffer_t * ssb)
     pushed   += to_push; \
     ct->used += to_push; \
 } while(0)
+
+		logmsg( stdout, "context_thread[%d] is locked.\n", cidx);
         pthread_mutex_lock(&ct->mutex);
+
         if (ct->read + ct->used < CONTEXT_BUF_CACHED)
 		{
             _DO_PUSH(ct->read + ct->used, CONTEXT_BUF_CACHED - ct->read - ct->used);
@@ -311,7 +315,10 @@ static int push_to_context(signal_sort_buffer_t * ssb)
             _DO_PUSH(ct->read + ct->used - CONTEXT_BUF_CACHED, CONTEXT_BUF_CACHED - ct->used);
         }
 #undef _DO_PUSH
+
         pthread_cond_signal(&ct->pushed);
+
+		logmsg( stdout, "context_thread[%d] is opened.\n", cidx);
         pthread_mutex_unlock(&ct->mutex);
         cidx = (cidx + 1) % CFG(context_thread);
     }
