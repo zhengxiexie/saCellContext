@@ -21,5 +21,13 @@ void print_logo( char *  );
        _log(3, f, __LINE__, __FILE__, __VA_ARGS__); \
     } while (0)
 
+#ifdef _DEBUG
+	#define logdbg(f, ...) do { \
+       _log(3, f, __LINE__, __FILE__, __VA_ARGS__); \
+    } while (0)
+#else
+	#define logdbg(f, ...)
+#endif
+
 #endif /* __LOG_H__ */
 

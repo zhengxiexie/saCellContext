@@ -2,7 +2,7 @@
 CC      = gcc
 #CFLAGS  = -O0 -q64 -g -D_GNU_SOURCE -D_THREAD_SAFE_ -D_REENTRANT_ -DWITH_MSISDN -DWITH_IMEI
 #LDFLAGS = -O2 -q64 -g -lpthread
-CFLAGS  = -O0  -ggdb3 -D_GNU_SOURCE -D_THREAD_SAFE_ -D_REENTRANT_# -DWITH_MSISDN -DWITH_IMEI
+CFLAGS  = -O0  -ggdb3 -D_GNU_SOURCE -D_THREAD_SAFE_ -D_REENTRANT_# -D_DEBUG# -DWITH_MSISDN -DWITH_IMEI
 LDFLAGS = -O2  -g -lpthread
 
 OBJECTS = config.o context.o reader-thread.o main.o comsumer-thread.o log.o

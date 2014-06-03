@@ -194,7 +194,7 @@ void * read_file_thread(void * data)
         // free allocted resource
         free(file_list);
 retry:
-		logmsg(stdout, "Now sleep [%d] seconds", CFG(sleep_interval));
+		logdbg(stdout, "Now sleep [%d] seconds", CFG(sleep_interval));
         sleep(CFG(sleep_interval));
     }
     return NULL;
@@ -227,7 +227,7 @@ static int push_to_sort_buf(signal_entry_t * se)
             if (signal_sort_buf[ps].time == -1) continue;
 
             // we need to push this sort buffer into context
-            /*logmsg(stdout, "Push %d record to context, timestamp: %d", signal_sort_buf[ps].used, signal_sort_buf[ps].time);*/
+			logmsg(stdout, "Push %d record to context, timestamp: %d", signal_sort_buf[ps].used, signal_sort_buf[ps].time);
 
             // check hourly update when needed
             check_hourly_update(signal_sort_buf[ps].time * 60);
@@ -274,7 +274,7 @@ static int push_to_sort_buf(signal_entry_t * se)
 
     signal_sort_buf[slot].used += 1;
 
-	logmsg( stdout, "push[%s] to signal_sort_buf[%d], used[%d/%d]\n", se->imsi, slot, signal_sort_buf[slot].used, CFG(sort_buffer));
+	logdbg( stdout, "push[%s] to signal_sort_buf[%d], used[%d/%d]\n", se->imsi, slot, signal_sort_buf[slot].used, CFG(sort_buffer));
     return 0;
 }
 
@@ -297,13 +297,13 @@ static int push_to_context(signal_sort_buffer_t * ssb)
 	int i = 0;\
 	for(; i<to_push; i++ ) \
 	{\
-		logmsg( stdout, "push[%s] to context_thread[%d]'s buf[%d]\n", (ses+i)->imsi, cidx, st);\
+		logdbg( stdout, "push[%s] to context_thread[%d]'s buf[%d]\n", (ses+i)->imsi, cidx, st);\
 	}\
     pushed   += to_push; \
     ct->used += to_push; \
 } while(0)
 
-		logmsg( stdout, "context_thread[%d] is locked.\n", cidx);
+		logdbg( stdout, "context_thread[%d] is locked.\n", cidx);
         pthread_mutex_lock(&ct->mutex);
 
         if (ct->read + ct->used < CONTEXT_BUF_CACHED)
@@ -318,7 +318,7 @@ static int push_to_context(signal_sort_buffer_t * ssb)
 
         pthread_cond_signal(&ct->pushed);
 
-		logmsg( stdout, "context_thread[%d] is opened.\n", cidx);
+		logdbg( stdout, "context_thread[%d] is opened.\n", cidx);
         pthread_mutex_unlock(&ct->mutex);
         cidx = (cidx + 1) % CFG(context_thread);
     }
